@@ -1,0 +1,452 @@
+---
+title: "College Football Fight Songs"
+author: Anil Akyildirim
+date: "12/04/2019"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    highlight: pygments
+    number_sections: yes
+    theme: flatly
+    toc: yes
+    toc_float: yes
+  pdf_document:
+    toc: yes
+---
+
+```{r}
+#Loading Required Packages
+
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(psych)
+
+
+
+
+```
+
+
+## Table of Contents
+
+* Introduction
+
+* Data Requirements
+
+* Data Collection
+
+* Data Understanding
+
+* Analytical Approach
+
+* Data Exploration
+
+* Model Development
+
+* Model Evaluation
+
+* Conclusion
+
+
+## Introduction
+
+American Football is a huge part of American tradition and It is very competitive on every level from 3rd grade to high school and college. In some cases College Football can be more competitive than NFL and teams do whatever it takes to win. Teams push themselves beyond their limits to add extra speed and strenght, from waking up 4:15 am every morning to lifting weights and running. The impact of this hard work is definately positive but are there other methods that can contribute the their victory?  What about using bagpipes for motiovation or intimidation? Bagpipes were traditionality used during war by Scots to scare their enemies or encourage the Scots into battle. How about College Fight Songs? Would the songs all college students memorized and sang during every college football game have an impact of the game result? Would the lyrics of the College Fight Song have an impact on the victory or loss? Would it matter if the Collge Fight Song is fast or slow? Would it help if the song uses the word victory often? 
+
+The purpose of this study is to determine if College Football Fight Song attributes have an impact on College Football Team's victory or loss. The business problem in question is " Can we find attributes in College Football Fight Song that can help College Football team win. The main group that may benefit from this study is the Athletic Department of the College. They may learn to identify that College Fight Songs have positive or negative impact to victory. 
+
+
+## Data Requirements
+
+There are variety of data that we require to collect in order to answer the problem statement and solve the business objectives. These can be loudness, rythm, tempo and lyrics. Considering the scope, we proceed with obvervational study rather than creating an experimental study and we use publicly available data rather than obtaining the data. The study is limited to all schools in the Power Five Conferences - The ACC, Big Ten, Big 12, Pac-12 and SEC- plus Notre Dame. For the purpose of this study, what constitues as the College Fight Song is defined as "official" by their schools and the ones fans sing out. The study is also limited to the lyrics sung most regularly and also published by the school. 
+
+
+## Data Collection
+
+https://fivethirtyeight.com/ published an article on August 30th 2019 around guide to College Fight Songs including a data that is collected by https://fivethirtyeight.com/ staff. The full dataset can be found here: https://github.com/fivethirtyeight/data/blob/master/fight-songs/fight-songs.csv . Addition to the "fight songs" dataset provided by five thirty eight,  NCAA winnings are collected from google search. The complete dataset can be found in csv format here: https://raw.githubusercontent.com/anilak1978/data/master/fight-songs/fight-songs.csv 
+
+### About the Data
+
+Definitions of the variables are as follows: 
+
+* school: School name
+
+* conference: School college football conference
+
+* song_name: Song title
+
+* writers: Song author
+
+* year: Year the song written. Some values are Unknown
+
+* student_writer: Was the author a student? Some values are Unknown
+
+* official_song: Is the song the official fight song according to the university?
+
+* contest: Was the song chosen as the result of a contest?
+
+* bpm: Beats per minute
+
+* sec_duration: Duration of song in seconds
+
+* fight: Does the song say “fight”?
+
+* number_fights: Number of times the song says “fight”?
+
+* victory: Does the song say “victory”?
+
+* win_won: Does the song say “win” or “won”?
+
+* victory_win_won: Does the song say “victory,” “win” or “won”?
+
+* rah: Does the song say “rah”?
+
+* nonsense: Does the song use nonsense syllables (e.g. "Whoo-Rah" or "Hooperay")
+
+* colors: Does the song mention the school colors?
+
+* men: Does the song refer to a group of men (e.g. men, boys, sons, etc.)?
+
+* opponents: Does the song mention any opponents?
+
+* spelling: Does the song spell anything?
+
+* trope_count: Total number of tropes (fight, victory, win_won, rah, nonsense,colors, men, opponents, and spelling).
+
+* spotify_id: Spotify id for the song
+
+### Loading Data in R
+
+```{r}
+
+fight_songs <- read.csv('https://raw.githubusercontent.com/anilak1978/data/master/fight-songs/fight-songs.csv')
+head(fight_songs)
+
+```
+
+## Data Understanding
+
+```{r}
+
+str(fight_songs)
+
+```
+
+
+There are 65 cases(observations) with 24 variables in our dataset. Each of the cases represents the name of the School. There are categorical variable types that needs to be character and date data types. Not all variables are required for the study. 
+
+### Data Cleaning
+
+```{r}
+# Update data types to correct format
+fight_songs$school <- as.character(fight_songs$school)
+fight_songs$school <- as.character(fight_songs$song_name)
+fight_songs$school <- as.character(fight_songs$writers)
+fight_songs$year <- format(as.Date(fight_songs$year, format='%Y'),"%Y")
+fight_songs$spotify_id <- as.character(fight_songs$spotify_id)
+```
+
+Name of the conference , song name, writers, contest, opponents and spotify_id variables are not neccessarily required for our analysis. There were 5 missing values which are removed from the dataset. 
+
+```{r}
+# select the needed columns
+fight_songs_df <- fight_songs %>%
+  select(school, conference, year, student_writer, official_song, bpm, sec_duration, fight, number_fights, victory, win_won, victory_win_won, rah, nonsense, colors, men, opponents, ncaa_won)
+# total na values in the dataset
+sum(is.na(fight_songs_df))
+# we can remove na values
+fight_songs_df <- na.omit(fight_songs_df)
+
+head(fight_songs_df)
+```
+
+
+
+```{r}
+# summary of the dataset
+summary(fight_songs_df)
+describe(fight_songs_df$bpm)
+describe(fight_songs_df$number_fights)
+describe(fight_songs_df$sec_duration)
+
+```
+
+Below outlines the basic measures of the College Fight Songs data.
+
+* After removing the 5 observations that had missing values, our dataset has 60 cases which are the names of the schools.
+
+* 31 of the songs are written by a student.
+
+* 53 of the songs are official school songs.
+
+* Average beat per minute is 126.9.
+
+* Average duration of the songs is 73.20.
+
+* 42 songs has the word fight in it.
+
+* Songs uses average 2.85 times the word "fight"
+
+* 31 of the songs have victory in it.
+
+* 10 of the songs have words that does not make sense.
+
+* 23 of the songs have word men in it.
+
+* 11 of the songs have opponents word in it.
+
+* Average win of ncaa is 6 times.
+
+
+```{r}
+theme_set(theme_classic())
+
+ggplot(fight_songs_df, aes(victory))+
+  geom_bar(aes(fill=conference), width=0.5)
+
+```
+
+The songs that uses the word victory tends to use the word win and won as well. 
+
+```{r}
+theme_set(theme_bw())
+
+ggplot(fight_songs_df, aes(sec_duration)) + scale_fill_brewer(palette = "Spectral")+
+  geom_histogram(aes(fill=student_writer),
+                 binwidth = 10,
+                 col="black",
+                 size=1)
+
+
+```
+
+
+The sec duration is slightly normal distributed and right skewed. 
+
+```{r}
+
+theme_set(theme_bw())
+
+ggplot(fight_songs_df, aes(number_fights)) + scale_fill_brewer(palette = "Spectral")+
+  geom_histogram(aes(fill=conference),
+                 binwidth = 1,
+                 col="black",
+                 size=1)
+
+
+
+```
+
+The use of word "fight" is right skewed and not normally distributed. 
+
+```{r}
+theme_set(theme_bw())
+ggplot(fight_songs_df, aes(bpm, ncaa_won))+
+  geom_jitter(width = 0.5, size=1)
+         
+
+```
+
+Majority of the Collge Football teams that won the Ncaa Won most frequently have College Fight Songs between 130-150 and 70-80 bpm. 
+
+```{r}
+
+theme_set(theme_bw())
+
+ggplot(fight_songs_df, aes(bpm)) + scale_fill_brewer(palette = "Spectral")+
+  geom_histogram(aes(fill=fight),
+                 binwidth = 10,
+                 col="black",
+                 size=1)
+
+
+
+```
+
+If we look at the bpm >110 mark, we see normal distribution. 
+
+```{r}
+
+theme_set(theme_bw())
+
+ggplot(fight_songs_df, aes(ncaa_won)) + scale_fill_brewer(palette = "Spectral")+
+  geom_histogram(aes(fill=conference),
+                 binwidth = 1,
+                 col="black",
+                 size=1)
+
+
+
+```
+
+The ncaa_won variable within the dataset is not normally distributed. 
+
+Based on the initial overview of the data set , we select the bpm, sec_duration, conference and ncaa_won. BPM is numerical variable which provides the information on song's rythm, sec_duration is numerical variable provides the information on the song's length, conference is a categorical variable, provides the information on what conference the College team is participating and ncaa_won numerical variable, which provides us the information on how many times that school won the ncaa chanmpionship.
+
+The potential explnatory variables we focus on are bpm and sec_duration. The response variable is ncaa_won.
+
+## Analytical Approach
+
+This study is an observational study. The collected data is not a census data, it does not include all the schools but rather subset of the schools. The data is not collected ramdonly as the cases are from the Five Conferences and Notrada Dame. The cases are independent from each other however there might be a sampling bias, since the samples are not collected randomly. One important factor to keep in mind is that  majority of the schools which participate the championship are included in the dataset. The cases for each conference is normally distributed. 
+
+The analysis can not be generalized for all the population (which is all the Colleges that has a Football team), however, can be generalized for the subsection of the population which is all the Colleges that participates in the Five Conferences for NCAA Championship. The The expectation from the study is to find association between the explanatory feature bpm and response target variable ncaa_won. We can safely say that the result of the study probably holds true for all the College's that participate in the NCAA Championship within the Five Conferences. This study is not an experimential design as there is no control group. The sampling captures most of the population of schools and expected conclusion is casual and possibly might be generalized. 
+
+### Hypothesis
+
+Based on the business problem in question, our hypothesis is as follows.
+
+$H_{0}:$ College Fight Song Attributes can be predictive of NCAA championship.
+
+$H_{1}:$ College Fight Song Attributes can not be predictive of NCAA championship.
+
+
+## Data Exploration
+
+```{r}
+# create the dataframe with only the variables we need
+
+fight_songs_df_2 <- fight_songs_df %>%
+  select(school, conference,bpm, sec_duration, ncaa_won)
+
+head(fight_songs_df_2)
+describe(fight_songs_df_2)
+
+```
+
+
+```{r}
+# see correlation between bpm and ncaa_won
+options(scipen=999)
+theme_set(theme_bw())
+
+ggplot(fight_songs_df_2, aes(bpm, ncaa_won))+
+  geom_point(aes(conference, size=sec_duration))
+
+
+```
+
+```{r}
+
+options(scipen=999)
+theme_set(theme_bw())
+
+ggplot(fight_songs_df_2, aes(sec_duration, ncaa_won))+
+  geom_point()
+
+
+
+```
+
+
+```{r}
+# see linearity and distribution
+
+qqnorm(fight_songs_df_2$bpm)
+qqline(fight_songs_df_2$bpm)
+hist(fight_songs_df_2$bpm)
+
+
+```
+
+```{r}
+# filter bpm above 110 to simulate normal distribution
+
+fight_songs_df_3 <- filter(fight_songs_df_2, fight_songs_df_2$bpm >110)
+theme_set(theme_bw())
+
+ggplot(fight_songs_df_3, aes(bpm)) + scale_fill_brewer(palette = "Spectral")+
+  geom_histogram(aes(fill=conference),
+                 binwidth = 10,
+                 col="black",
+                 size=1)
+
+
+
+
+
+```
+
+```{r}
+
+qqnorm(fight_songs_df_3$bpm)
+qqline(fight_songs_df_3$bpm)
+
+```
+
+
+When we look at the bpm above 110, we see that it is normally distributed and there are some residuals towards both top and bottom of the line. 
+
+```{r}
+
+qqnorm(fight_songs_df_3$sec_duration)
+qqline(fight_songs_df_3$sec_duration)
+hist(fight_songs_df_3$sec_duration)
+
+
+```
+
+
+When we look at the sec_duration , we see that it is normally distributed and there are some residuals towards the top of the line. 
+
+The sample size is 60, the dataset for bpm follows close to normal distribution and sample set are randomly selected for Five conference College Fight Songs. 
+
+## Model Development
+
+Based on our analytical approach, we use simple regression model. 
+
+```{r}
+
+
+options(scipen=999)
+theme_set(theme_bw())
+
+ggplot(fight_songs_df_3, aes(bpm, ncaa_won))+
+  geom_point()
+
+cor(fight_songs_df_3$bpm, fight_songs_df_3$ncaa_won)
+cor(fight_songs_df_3$sec_duration, fight_songs_df_3$ncaa_won)
+
+```
+
+
+There is a very weak , negative linear correlation between bpm and ncaa_won , explantory and response variable. There is almost no linear correlation between sec_duration and ncaa_won. 
+
+```{r}
+# creating regrresion model
+
+model <- lm(ncaa_won ~ bpm, data = fight_songs_df_3)
+summary(model)
+
+
+
+```
+
+## Model Evaluation
+
+```{r}
+
+# check for linearity of the model
+
+qqnorm(model$residuals)
+qqline(model$residuals)
+hist(model$residuals)
+
+```
+
+
+
+The model meets the linearity, nearly normal residuals condition. The strength of the fit defined by $R^2$ is 0.020 which is not that strong. 2% of the variablity can be explained by the NCAA championship variable within the model. 
+
+
+## Conclusion
+
+Our study of College Fight Songs findings are as follow;
+
+* The strength of the model fit defined by $R^2$ is 0.020 which is not that strong. 2% of the variablity can be explained by the NCAA championship variable within the model. 
+
+* P value is not low p-value which means we bpm explantory variable is not a good predictor. 
+
+* Every additional NCAA wining , we can expect bpm increase , we can expect to reduce ncaa championship by 1. 
+
+* With simple linear regression, we can not select available College Fight Song Attributes to predict the victory of NCAA Championship conference. We reject the null hypothesis. 
